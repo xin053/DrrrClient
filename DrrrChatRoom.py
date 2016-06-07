@@ -4,7 +4,7 @@ import sys
 # from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream, QUrl
 # from PyQt5.QtWidgets import QApplication,QWidget,QMainWindow
 # from PyQt5.QtNetwork import QNetworkProxyFactory, QNetworkRequest
-from PyQt5.QtWebKitWidgets import QWebPage, QWebView
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5 import QtGui,QtCore,Qt,uic
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import *
@@ -37,7 +37,7 @@ WaitingHTML = """
 </body>
 </html>
 """
-# 图标按钮类重写类
+# 图标按钮类重写类     窗口右上角的最大，最小，关闭三个按钮,定义按钮不同动作所发出的信号
 class labelBtn(QtWidgets.QLabel):
     clicked = QtCore.pyqtSignal(str)
     Entered = QtCore.pyqtSignal(str)
@@ -221,8 +221,8 @@ class FrameLessTransparentWindow(QtWidgets.QMainWindow):
 class ShadowsWindow(FrameLessTransparentWindow):
     def __init__(self):
         super(ShadowsWindow, self).__init__()
-        self.setWindowFlags(Qt.FramelessWindowHint)  
-        self.setAttribute(Qt.WA_TranslucentBackground)  
+        self.setWindowFlags(Qt.FramelessWindowHint)  #去掉窗口标题栏
+        self.setAttribute(Qt.WA_TranslucentBackground)   #窗体标题栏不透明,背景透明
         self.SHADOW_WIDTH=15
 
     def drawShadow(self,painter):
@@ -326,9 +326,9 @@ class titleBar(QWidget):
 
         self.title_label.setFont(self.font)
 
-        self.close_button = labelBtn(None)
-        self.min_button   = labelBtn(None)
-        self.max_button   = labelBtn(None)
+        self.close_button = labelBtn('x')
+        self.min_button = labelBtn('-')
+        self.max_button = labelBtn('口')
 
         self.close_button.setPixmap(QPixmap("./img/orange.png"))
         self.min_button.setPixmap(QPixmap("./img/green.png"))
@@ -475,8 +475,8 @@ class NetworkReply(QNetworkReply):
                 Qt.QueuedConnection)
 
 
-        print self.readyRead.emit()
-        print self.finished.emit()
+        print (self.readyRead.emit())
+        print (self.finished.emit())
         # print self.encrypted
         # print self.sslErrors
 
@@ -543,7 +543,7 @@ class NetworkReply(QNetworkReply):
  
     def readInternal(self):
         # this is called 
-        print self.reply
+        print (self.reply)
         s = self.reply.readAll()
         self.data += s
         self.buffer += s
@@ -567,7 +567,7 @@ class NetworkReply(QNetworkReply):
             data = self.content[self.offset:end]
             self.offset = end
             # return data
-            print str(data)
+            print (str(data))
             return str(data)
 
 class DownloadReply(QNetworkReply):
@@ -590,11 +590,11 @@ class DownloadReply(QNetworkReply):
         self.setUrl(url)
     
     def abort(self):
-        print "abort"
+        print ('abort')
         pass
     
     def bytesAvailable(self):
-        print 'bytesAvailable'
+        print ('bytesAvailable')
         # NOTE:
         # This works for Win:
         #      return len(self.content) - self.offset
@@ -604,20 +604,20 @@ class DownloadReply(QNetworkReply):
         return len(self.content) - self.offset
     
     def isSequential(self):
-        print 'isSequential'
+        print ('isSequential')
         return True
     
     def read(self):
-        print "read"
+        print ("read")
         pass
 
     def readData(self, maxSize):        
-        print 'readData'
+        print ('readData')
         if self.offset < len(self.content):
             end = min(self.offset + maxSize, len(self.content))
             data = self.content[self.offset:end]
             self.offset = end
-            print str(data)
+            print (str(data))
             return data
             return str(data)
 
@@ -644,7 +644,7 @@ class NetworkAccessManager(QNetworkAccessManager):
         pass
 
     def createRequest(self, operation, request, data):
-        print operation,request.url()
+        print (operation,request.url())
 
         # replyy = QNetworkReplyImpl()
 
@@ -661,7 +661,7 @@ class NetworkAccessManager(QNetworkAccessManager):
             self.networkReply = NetworkReply(QNetworkAccessManager.createRequest(self, operation, request, data))
             return self.networkReply
 
-            print request.url()
+            print (request.url())
             reply = DownloadReply(self, request.url(), self.GetOperation)
             # reply.finished.connect(self.customReplyFinished)
             return reply
@@ -680,7 +680,7 @@ class NetworkAccessManager(QNetworkAccessManager):
             # return QNetworkAccessManager.createRequest(self, operation, request, data)
         
         if operation == self.GetOperation:
-            print "GetOperation"
+            print ("GetOperation")
             # Handle download:// URLs separately by creating custom
             # QNetworkReply objects.
             reply = DownloadReply(self, request.url(), self.GetOperation)
@@ -717,25 +717,24 @@ class DrrrWindow(ShadowsWindow):
         # w.show()
         self.getSetting()
 
-        self.WebView = QWebView()
+        self.WebView = QWebEngineView()
         # self.WebView.load(QUrl("file:///E:/Project/DrrrPC/img/index.html"))
         self.WebView.setZoomFactor(0.8)
 
+        # 设置加载网页，和网页加载完成以及加载过程信号与槽函数关联
         self.WebView.loadStarted.connect(self.loadStarted)
         self.WebView.loadFinished.connect(self.loadFinished)
         self.WebView.loadProgress.connect(self.loading)
 
-        # self.connect(self.WebView, SIGNAL("loadStarted(bool)"), self.loadStarted)
-        # self.connect(self.WebView, SIGNAL("loadFinished(bool)"), self.loadFinished)
-        # self.connect(self.WebView, SIGNAL("loadProgress(int)"), self.loading)
-
         self.cookieJar = QNetworkCookieJar()
-        self.WebView.page().networkAccessManager().setCookieJar(self.cookieJar)
+        # self.WebView.page().networkAccessManager().setCookieJar(self.cookieJar)
         # self.WebView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        self.WebView.page().linkClicked.connect(self.linkClicked)
-        self.WebView.page().contentsChanged.connect(self.contentsChanged)
+        # self.WebView.page().linkClicked.connect(self.linkClicked)
+        # self.WebView.page().contentsChanged.connect(self.contentsChanged)
         # self.WebView.page().networkAccessManager().setHeader(QNetworkRequest.ContentTypeHeader, QVariant("text/html; charset=GBK"))
 
+
+        # 重定义QWebEnginePage中javaScriptAlert等函数
         self.WebView.page().javaScriptAlert = self._javascript_alert                
         self.WebView.page().javaScriptConsoleMessage = self._javascript_console_message
         self.WebView.page().javaScriptConfirm = self._javascript_confirm
@@ -747,9 +746,9 @@ class DrrrWindow(ShadowsWindow):
         # self.NetworkAccessManager.finished.connect(self.NetworkAccessManagerReplyFinished)        
         # self.NetworkAccessManager.get(QNetworkRequest(QUrl("http://www.baidu.com")))        
 
-        self.old_manager = self.WebView.page().networkAccessManager()
-        self.new_manager = NetworkAccessManager(self.old_manager)
-        self.WebView.page().setNetworkAccessManager(self.new_manager)
+        # self.old_manager = self.WebView.page().networkAccessManager()
+        # self.new_manager = NetworkAccessManager(self.old_manager)
+        # self.WebView.page().setNetworkAccessManager(self.new_manager)
 
         self.titlebar = titleBar()
         self.statusBar = StatusWindow()
@@ -791,10 +790,13 @@ class DrrrWindow(ShadowsWindow):
         # self.setMaximumHeight(660)
         self.center()
 
-        # 功能性功能开始
+        # 将三个按钮点击信号与相关槽函数相关联
         self.titlebar.min_button.clicked.connect(self.hideIt)
         self.titlebar.max_button.clicked.connect(self.MaxAndNormal)
         self.titlebar.close_button.clicked.connect(self.closeIt)
+
+        # 状态栏进度条：将LoadProgress信号与loading槽函数相关联
+        self.WebView.loadProgress.connect(self.loading)
 
         # notice sound
         # self.player = 
@@ -838,7 +840,7 @@ class DrrrWindow(ShadowsWindow):
     @QtCore.pyqtSlot(str)
     def play(self,content):
         # ["bubble","userin","userout"]
-        print content
+        print (content)
         QtMultimedia.QSound.play("./img/"+content+".wav")
 
     def readyRead(self):
@@ -858,35 +860,36 @@ class DrrrWindow(ShadowsWindow):
         pass
 
     def _javascript_alert(self, webframe, message):
-        print '_javascript_alert'
+        print ('_javascript_alert')
         
     def _javascript_console_message(self, message, line, sourceid):
-        print "_javascript_console_message"
+        print ("_javascript_console_message")
 
     def _javascript_confirm(self, webframe, message):
-        print "_javascript_confirm"
+        print ("_javascript_confirm")
         return QWebPage.javaScriptConfirm(self.WebView.page(), webframe, message)
 
     def _javascript_prompt(self, webframe, message, defaultvalue, result):
-        print "_javascript_prompt"
+        print ("_javascript_prompt")
 
     def linkClicked(self,url):
-        print url
+        print (url)
 
+    # 获取ini格式的设置
     def getSetting(self):
         '''获取应用设置'''
         self.settings = QtCore.QSettings("DrrrChatRoom.ini", QtCore.QSettings.IniFormat)
 
     def loadStarted(self):
         if 'http://drrr.com/' == str(self.WebView.url().toString()):
-            frame = self.WebView.page().mainFrame()
-            name = frame.findFirstElement("input#form-name.home-name-input")
-            username = name.evaluateJavaScript("this.value")
-            print username
-            language = frame.findFirstElement("#form-language-select")
-            language = language.evaluateJavaScript("this.value")
-            print language
-            frame.evaluateJavaScript("""
+            frame = self.WebView.page()
+            # name = frame.findFirstElement("input#form-name.home-name-input")
+            # username = name.evaluateJavaScript("this.value")
+            # print (username)
+            # language = frame.findFirstElement("#form-language-select")
+            # language = language.evaluateJavaScript("this.value")
+            # print (language)
+            frame.runJavaScript("""
                 var iconFun = function(){
                     var elementsLI = document.getElementsByTagName('li')
                     var length = document.getElementsByTagName('li').length;
@@ -898,68 +901,68 @@ class DrrrWindow(ShadowsWindow):
                     return icon
                     };                                
                 """)
-            icon = frame.evaluateJavaScript("""iconFun()""")
+            icon = frame.runJavaScript("""iconFun()""")
 
-            print icon
+            print (icon)
 
-            if username:self.settings.setValue('username',username)
-            if language:self.settings.setValue("language",language)
-            if icon:
-                # self.settings.setValue("icon",icon)
-                pass
-            else:
-                if self.settings.value('icon', None):
-                    icon = self.settings.value('icon',None)
-                    frame.findFirstElement('input[value="'+icon+'"]').evaluateJavaScript("this.click()")
-           
+            # if username:self.settings.setValue('username',username)
+            # if language:self.settings.setValue("language",language)
+            # if icon:
+            #     # self.settings.setValue("icon",icon)
+            #     pass
+            # else:
+            #     if self.settings.value('icon', None):
+            #         icon = self.settings.value('icon',None)
+            #         frame.findFirstElement('input[value="'+icon+'"]').evaluateJavaScript("this.click()")
+            #
 
         if "http://drrr.com/room/?ajax=1" in str(self.WebView.url().toString()):
             # print "quit room"
             pass
-        print 'requestedUrl:' + self.WebView.page().mainFrame().requestedUrl().toString()
+        print ('requestedUrl:' + self.WebView.url().toString())
     
     def loadFinished(self, flag):
         self.statusBar.status.setText(u"Connected")
 
         # http://drrr.com/
         if 'http://drrr.com/' == str(self.WebView.url().toString()):
-            frame = self.WebView.page().mainFrame()
-            name = frame.findFirstElement("input#form-name.home-name-input")
-            if self.settings.value('username', None):
-                name.setAttribute('value',self.settings.value('username', None)) 
-            language = frame.findFirstElement("#form-language-select")
-            if self.settings.value('language', None):
-                language.evaluateJavaScript('''
-                    sel = document.getElementById("form-language-select");
-                    for(var i = 0, j = sel.options.length; i < j; ++i) {
-                        if(sel.options[i].value === "'''+self.settings.value('language', "zh-CN")+'''") {
-                           sel.selectedIndex = i;
-                           break;
-                        }
-                    }
-                    ''')
-                # language.setAttribute('value',self.settings.value('language', None))
-            if self.settings.value('icon', None):
-                icon = self.settings.value('icon',None)
-                frame.findFirstElement('input[value="'+icon+'"]').evaluateJavaScript("this.click()")
+            frame = self.WebView.page()
+            # name = frame.findFirstElement("input#form-name.home-name-input")
+            # if self.settings.value('username', None):
+            #     name.setAttribute('value',self.settings.value('username', None))
+            # language = frame.findFirstElement("#form-language-select")
+            # if self.settings.value('language', None):
+            #     language.evaluateJavaScript('''
+            #         sel = document.getElementById("form-language-select");
+            #         for(var i = 0, j = sel.options.length; i < j; ++i) {
+            #             if(sel.options[i].value === "'''+self.settings.value('language', "zh-CN")+'''") {
+            #                sel.selectedIndex = i;
+            #                break;
+            #             }
+            #         }
+            #         ''')
+            #     # language.setAttribute('value',self.settings.value('language', None))
+            # if self.settings.value('icon', None):
+            #     icon = self.settings.value('icon',None)
+            #     frame.findFirstElement('input[value="'+icon+'"]').evaluateJavaScript("this.click()")
 
         # http://drrr.com/create_room/
         if 'http://drrr.com/room/' in str(self.WebView.url().toString()):
-            frame = self.WebView.page().mainFrame()
-            frame.addToJavaScriptWindowObject("drrrWindow", self)
-            frame.evaluateJavaScript('''
+            frame = self.WebView.page()
+            # frame.addToJavaScriptWindowObject("drrrWindow", self)
+            frame.runJavaScript('''
                 var volumeFun = function(b){
                     return b
                     }
                 ''')
-            frame.evaluateJavaScript('''
+            frame.runJavaScript('''
                 var playFun = function(a){
                     this.volume = volumeFun;
                     drrrWindow.play(a);
                     return this
                     };
                 ''')
-            frame.evaluateJavaScript('''sound.play = playFun''')
+            frame.runJavaScript('''sound.play = playFun''')
                                             
     def loading(self, percent):
         self.statusBar.status.setText("Loading %d%%" % percent)
@@ -1008,13 +1011,13 @@ class DrrrWindow(ShadowsWindow):
         if self.showNormal3():
             self.showFullScreen3()
 
-
-    def showEvent(self,event):
-        self.animation = QtCore.QPropertyAnimation(self,"windowOpacity")
-        self.animation.setDuration(300)
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(1)
-        self.animation.start()
+    #定义DrrrWindow显示动画
+    # def showEvent(self,event):
+    #     self.animation = QtCore.QPropertyAnimation(self,"windowOpacity")
+    #     self.animation.setDuration(300)
+    #     self.animation.setStartValue(0)
+    #     self.animation.setEndValue(1)
+    #     self.animation.start()
 
     def showNormal2(self):
         self.showNormal()
@@ -1056,11 +1059,11 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     QNetworkProxyFactory.setUseSystemConfiguration(True)
 
-    from PyQt5.QtWebKit import QWebSettings
+    from PyQt5.QtWebEngineWidgets import QWebEngineSettings
     # QWebSettings.globalSettings().setAttribute(QWebSettings.JavascriptEnabled,True)
     # QWebSettings.globalSettings().setAttribute(QWebSettings.JavaEnabled,True)
     # QWebSettings.globalSettings().setAttribute(QWebSettings.PluginsEnabled,True)
-    QWebSettings.globalSettings().setAttribute(QWebSettings.DeveloperExtrasEnabled,True)
+    # QWebEngineSettings.globalSettings().setAttribute(QWebEngineSettings.DeveloperExtrasEnabled, True)
 
     drrr = DrrrWindow()
 
